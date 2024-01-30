@@ -120,3 +120,127 @@ GROUP BY
     CTE.CONTINENT, CTE.LOCATION, CTE.POPULATION;
 
 
+--TABLEAU PROJECT
+
+Select SUM(new_cases) as total_cases, SUM(cast(new_deaths as int)) as total_deaths, 
+SUM(cast(new_deaths as int))/SUM(New_Cases)*100 as DeathPercentage
+From dbo.Cowid_Deaths
+--Where location like '%states%'
+where continent is not null 
+--Group By date
+order by 1,2
+
+
+Select location, SUM(cast(new_deaths as int)) as TotalDeathCount
+From dbo.Cowid_Deaths
+--Where location like '%states%'
+Where continent is null 
+and location not in ('World', 'European Union', 'International')
+Group by location
+order by TotalDeathCount desc
+
+Select Location, Population, MAX(total_cases) as HighestInfectionCount,  Max((total_cases/population))*100 as PercentPopulationInfected
+From dbo.Cowid_Deaths
+--Where location like '%states%'
+Group by Location, Population
+order by PercentPopulationInfected desc
+
+Select Location, Population,date, MAX(total_cases) as HighestInfectionCount,  Max((total_cases/population))*100 as PercentPopulationInfected
+From Cowid_Deaths
+--Where location like '%states%'
+Group by Location, Population, date
+order by PercentPopulationInfected desc
+
+
+    
+--DATA CLEANING
+
+SELECT * FROM dbo.Data_Cleaning;
+
+Select SaleDateConverted, CONVERT(Date,SaleDate)
+From dbo.Data_Cleaning;
+
+UPDATE dbo.Data_Cleaning
+SET SaleDateConverted = CONVERT(Date,SaleDate)
+
+ALTER TABLE dbo.Data_Cleaning ADD SaleDateConverted DATE;
+
+--ISNULL
+SELECT a.ParcelID, a.PropertyAddress, b.ParcelID, b.PropertyAddress FROM dbo.Data_Cleaning a
+INNER JOIN dbo.Data_Cleaning b
+ON a.ParcelID = b.ParcelID
+AND a.[UniqueID] <> b.[UniqueID]
+WHERE a.PropertyAddress IS NULL
+
+
+UPDATE a 
+SET PropertyAddress = ISNULL(a.PropertyAddress,b.PropertyAddress)
+FROM dbo.Data_Cleaning a
+INNER JOIN dbo.Data_Cleaning b
+ON a.ParcelID = b.ParcelID
+AND a.[UniqueID] <> b.[UniqueID]
+WHERE a.PropertyAddress IS NULL
+
+
+SELECT
+SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress) -1 ) as Address
+, SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress) + 1 , LEN(PropertyAddress)) as Address
+FROM Data_Cleaning
+
+
+ALTER TABLE Data_Cleaning
+Add PropertySplitAddress Nvarchar(255);
+Update Data_Cleaning
+SET PropertySplitAddress = SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress) -1 )
+
+
+ALTER TABLE Data_Cleaning
+Add PropertySplitCity Nvarchar(255);
+Update Data_Cleaning
+SET PropertySplitCity = SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress) + 1 , LEN(PropertyAddress))
+
+ALTER TABLE Data_Cleaning
+DROP COLUMN PropertySplitCity;
+
+Select
+PARSENAME(REPLACE(OwnerAddress, ',', '.') , 3)
+,PARSENAME(REPLACE(OwnerAddress, ',', '.') , 2)
+,PARSENAME(REPLACE(OwnerAddress, ',', '.') , 1)
+From Data_Cleaning;
+
+
+ALTER TABLE Data_Cleaning
+Add OwnerSplitAddress Nvarchar(255);
+Update Data_Cleaning
+SET OwnerSplitAddress = PARSENAME(REPLACE(OwnerAddress, ',', '.') , 3)
+
+
+ALTER TABLE Data_Cleaning
+Add OwnerSplitCity Nvarchar(255);
+Update Data_Cleaning
+SET OwnerSplitCity = PARSENAME(REPLACE(OwnerAddress, ',', '.') , 2)
+
+
+ALTER TABLE Data_Cleaning
+Add OwnerSplitState Nvarchar(255);
+Update Data_Cleaning
+SET OwnerSplitState = PARSENAME(REPLACE(OwnerAddress, ',', '.') , 1)
+
+
+Select Distinct(SoldAsVacant), Count(SoldAsVacant)
+From Data_Cleaning
+Group by SoldAsVacant
+
+Select SoldAsVacant, CASE When SoldAsVacant = 'Y' THEN 'Yes'
+	   When SoldAsVacant = 'N' THEN 'No'
+	   ELSE SoldAsVacant
+	   END AS Yes_OR_NO
+From Data_Cleaning
+
+UPDATE Data_Cleaning SET SoldAsVacant = CASE When SoldAsVacant = 'Y' THEN 'Yes'
+	   When SoldAsVacant = 'N' THEN 'No'
+	   ELSE SoldAsVacant
+	   END 
+From Data_Cleaning
+
+
